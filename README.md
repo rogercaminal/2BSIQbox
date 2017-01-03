@@ -3,5 +3,5 @@
 **created:**  27-12-2016
 **Last modified:** 27-12-2016
 
-# About 2BSIQbox
+# About DualCQbox
 Under development.
