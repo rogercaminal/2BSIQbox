@@ -1,30 +1,30 @@
 //--- Input pins for the RX switch
-int pin_switch_RX1  = A0;
-int pin_switch_BOTH = A1;
+int pin_switch_RX1  = A3;
 int pin_switch_AUTO = A2;
-int pin_switch_RX2  = A3;
+int pin_switch_RX2  = A1;
+int pin_switch_BOTH = A0;
 
 //--- Output pins to fire relays and LEDs
-int pin_LED_Rx1    = 11;
-int pin_LED_Rx2    = 10;
-int pin_LED_Tx1    = 9;
-int pin_LED_Tx2    = 8;
+int pin_LED_Rx1    = 9;
+int pin_LED_Rx2    = 11;
+int pin_LED_Tx1    = 8;
+int pin_LED_Tx2    = 10;
 
-//--- Input pins to get PTT signal
-int pin_PTT1 = 2;
-int pin_PTT2 = 3;
+//--- Input pins to get TX signal
+int pin_TX1 = 3;
+int pin_TX2 = 5;
 
 //--- Output pins to send inhibit signal
 int pin_inh1 = 4;
-int pin_inh2 = 5;
+int pin_inh2 = 6;
 
 //--- Output pins for the RX relays
-int pin_relay_switch = 6;
-int pin_relay_stereo = 7;
+int pin_relay_switch = 2;
+int pin_relay_stereo = 13;
 
-//--- RX and TX modes
+//--- RX and TX states
 enum TX_RADIO{NONE, R1, R2};
-enum RX_MODES{ALL_R1, ALL_R2, BOTH, AUTO};
+enum RX_MODES{ALL_R1, ALL_R2, BOTH, AUTO, INVALIDMODE};
 
 //--- GLobal variables
 RX_MODES mode_rx = RX_MODES::ALL_R1;
@@ -43,8 +43,8 @@ void setup() {
   pinMode(pin_LED_Tx1, OUTPUT); // HIGH when TX on radio 1
   pinMode(pin_LED_Tx2, OUTPUT); // HIGH when TX on radio 2
   
-  pinMode(pin_PTT1, INPUT_PULLUP);
-  pinMode(pin_PTT2, INPUT_PULLUP);
+  pinMode(pin_TX1, INPUT_PULLUP);
+  pinMode(pin_TX2, INPUT_PULLUP);
   pinMode(pin_inh1, OUTPUT);
   pinMode(pin_inh2, OUTPUT);
 
@@ -52,6 +52,9 @@ void setup() {
   pinMode(pin_switch_BOTH, INPUT_PULLUP);
   pinMode(pin_switch_AUTO, INPUT_PULLUP);
   pinMode(pin_switch_RX2, INPUT_PULLUP);
+
+  pinMode(pin_relay_switch, OUTPUT);
+  pinMode(pin_relay_stereo, OUTPUT);
 
   //--- Initial state
   digitalWrite(pin_LED_Rx1, LOW);
@@ -74,17 +77,17 @@ void loop() {
   //--- Read RX mode from switch
   get_RX_mode();
 
-  //--- Get PTT signals from rigs
-  read_PTTs();
+  //--- Get TX signals from rigs
+  read_TX();
   
-  //--- set RX depending on RX_mode and PTTs
+  //--- set RX depending on RX_mode and TX
   set_RX();
 
   //--- set TX LEDs and inhibits
   set_TX();
 
-  Serial.print(mode_rx);
-  Serial.print("\n");
+//  Serial.print(mode_rx);
+//  Serial.print("\n");
 }
 
 
@@ -94,34 +97,41 @@ void get_RX_mode()
   if (digitalRead(pin_switch_RX1)==LOW){
     mode_rx = RX_MODES::ALL_R1;
   }
-  if (digitalRead(pin_switch_BOTH)==LOW){
-    mode_rx = RX_MODES::BOTH;
-  }
-  if (digitalRead(pin_switch_AUTO)==LOW){
+  else if (digitalRead(pin_switch_AUTO)==LOW){
     mode_rx = RX_MODES::AUTO;
   }
-  if (digitalRead(pin_switch_RX2)==LOW){
+  else if (digitalRead(pin_switch_RX2)==LOW){
     mode_rx = RX_MODES::ALL_R2;
+  }
+  else if (digitalRead(pin_switch_BOTH)==LOW){
+    mode_rx = RX_MODES::BOTH;
+  }
+  else{
+    mode_rx = RX_MODES::INVALIDMODE;
   }
 }
 
 
 //_________________________________________________
-void read_PTTs()
+void read_TX()
 {
-  if (digitalRead(pin_PTT1)==HIGH && digitalRead(pin_PTT2)==HIGH){
+  if (digitalRead(pin_TX1)==HIGH && digitalRead(pin_TX2)==HIGH){
     tx=TX_RADIO::NONE;
+//    Serial.print("Read_TX: 0\n");
   }
-  else if (digitalRead(pin_PTT1)==LOW && tx!=TX_RADIO::R2)
+  else if (digitalRead(pin_TX1)==LOW && tx!=TX_RADIO::R2)
   {
     tx=TX_RADIO::R1;
+//    Serial.print("Read_TX: 1\n");
   }
-  else if (digitalRead(pin_PTT2)==LOW && tx!=TX_RADIO::R1)
+  else if (digitalRead(pin_TX2)==LOW && tx!=TX_RADIO::R1)
   {
     tx=TX_RADIO::R2;
+//    Serial.print("Read_TX: 2\n");
   }
   else{
     tx=TX_RADIO::NONE;
+//    Serial.print("Read_TX: 3\n");
   }
 }
 
@@ -163,20 +173,30 @@ void set_RX()
     digitalWrite(pin_LED_Rx1, HIGH);
     digitalWrite(pin_LED_Rx2, HIGH);
   }
+  if (mode_rx==RX_MODES::INVALIDMODE){
+    digitalWrite(pin_LED_Rx1, LOW);
+    digitalWrite(pin_LED_Rx2, LOW);
+  }
 
   //--- RX relays
   if (rx_switch){
     digitalWrite(pin_relay_switch, HIGH);
+//    Serial.print("pin_relay_switch: HIGH\n");
   }
   else{
     digitalWrite(pin_relay_switch, LOW);
+//    Serial.print("pin_relay_switch: LOW\n");
   }
   if (rx_stereo){
     digitalWrite(pin_relay_stereo, HIGH);
+//    Serial.print("pin_relay_stereo: HIGH\n");
   }
   else{
     digitalWrite(pin_relay_stereo, LOW);
+//    Serial.print("pin_relay_stereo: LOW\n");
   }
+//  Serial.print("\n");
+  
 }
 
 
